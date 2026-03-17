@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Conquest of Westeros</title>
 <style>
+  @font-face {
+    font-family: 'BentonSans';
+    src: url('assets/BentonSans-Cond.otf') format('opentype');
+    font-weight: normal;
+  }
+  @font-face {
+    font-family: 'BentonSans';
+    src: url('assets/BentonSans-CondBold.otf') format('opentype');
+    font-weight: bold;
+  }
+  @font-face {
+    font-family: 'GoudyTrajan';
+    src: url('assets/GoudyTrajan-Bold.otf') format('opentype');
+    font-weight: bold;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: #000;
@@ -14,7 +29,7 @@
     width: 100vw;
     height: 100vh;
     overflow: hidden;
-    font-family: 'Georgia', serif;
+    font-family: 'BentonSans', sans-serif;
   }
   #game-wrap {
     display: flex;
@@ -133,7 +148,7 @@ const AI_COOLDOWN_MIN = 80;
 const AI_COOLDOWN_MAX = 160;
 const AI_MIN_TROOPS = 20;
 const AI_GARRISON = 15;
-const AI_GRACE_MS = 7000;
+const AI_GRACE_MS = 8500;
 const AI_PLAYER_SAFETY_MS = 30000;
 const CASTLE_IMG_SIZE = 68;
 const FLEET_SPEED = 1.28;
@@ -187,6 +202,7 @@ let splashImage = new Image();
 let marchLineImage = new Image();
 let titleFireImage = new Image();
 let titleLogoImage = new Image();
+let pointerImage = new Image();
 
 let castles = [];
 let fleets = [];
@@ -428,7 +444,7 @@ function draw() {
       ctx.fill();
     }
     const troopBadge = String(Math.floor(f.troops));
-    ctx.font = 'bold 9px Georgia';
+    ctx.font = 'bold 9px BentonSans, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -464,24 +480,9 @@ function draw() {
       ctx.stroke();
     }
 
-    // Intro flash: player castle pulses green 3 times on game start
-    if (c.owner === 'player' && !gameOver) {
-      const elapsed = Date.now() - gameStartTime;
-      const flashDuration = AI_GRACE_MS;
-      if (elapsed < flashDuration) {
-        const pulsePeriod = flashDuration / 3;
-        const t = (elapsed % pulsePeriod) / pulsePeriod;
-        const alpha = Math.sin(t * Math.PI);
-        ctx.strokeStyle = `rgba(57, 255, 20, ${alpha * 0.9})`;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, circleR + 2 + alpha * 6, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
 
     const troopStr = String(Math.floor(c.troops));
-    ctx.font = 'bold 15px Georgia';
+    ctx.font = 'bold 15px BentonSans, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.strokeStyle = '#000';
@@ -492,7 +493,7 @@ function draw() {
     ctx.fillStyle = '#fff';
     ctx.fillText(troopStr, c.x, c.y);
 
-    ctx.font = 'bold 11px Georgia';
+    ctx.font = 'bold 11px BentonSans, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.strokeStyle = '#000';
@@ -528,8 +529,84 @@ function draw() {
     }
   }
 
+  // Ghost finger tutorial animation
   if (!gameOver && !debugEditMode) {
-    ctx.font = 'bold 16px Georgia';
+    const elapsed = Date.now() - gameStartTime;
+    const GHOST_TOTAL = 6500;
+    const playerCastle = castles.find(c => c.owner === 'player');
+    const enemies = castles.filter(c => c.owner !== 'player');
+    if (elapsed < GHOST_TOTAL && playerCastle && enemies.length) {
+      const nearestEnemy = enemies.reduce((a, b) =>
+        Math.hypot(b.x - playerCastle.x, b.y - playerCastle.y) <
+        Math.hypot(a.x - playerCastle.x, a.y - playerCastle.y) ? b : a);
+
+      const FADE_IN   = 700;
+      const TAP_DOWN  = 1200;
+      const TAP_UP    = 1700;
+      const DRAG_END  = 4500;
+      const REL_END   = 5200;
+      const FADE_OUT  = 6500;
+
+      let alpha = 1;
+      if (elapsed < FADE_IN)        alpha = elapsed / FADE_IN;
+      else if (elapsed > REL_END)   alpha = Math.max(0, 1 - (elapsed - REL_END) / (FADE_OUT - REL_END));
+
+      // Finger position
+      let fx, fy;
+      if (elapsed <= TAP_UP) {
+        fx = playerCastle.x; fy = playerCastle.y;
+      } else if (elapsed <= DRAG_END) {
+        const t = (elapsed - TAP_UP) / (DRAG_END - TAP_UP);
+        const e = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+        fx = playerCastle.x + (nearestEnemy.x - playerCastle.x) * e;
+        fy = playerCastle.y + (nearestEnemy.y - playerCastle.y) * e;
+      } else {
+        fx = nearestEnemy.x; fy = nearestEnemy.y;
+      }
+
+      // Press scale (squish on tap-down, release on lift)
+      const pressing = elapsed >= TAP_DOWN && elapsed < TAP_UP;
+      const pressT = pressing ? (elapsed - TAP_DOWN) / (TAP_UP - TAP_DOWN) : 0;
+      const fingerScale = pressing ? (1 - 0.25 * Math.sin(pressT * Math.PI)) : 1;
+
+      // Ripple on tap-down and on release at enemy
+      const showTapRipple = elapsed >= TAP_DOWN && elapsed < TAP_DOWN + 600;
+      const showRelRipple = elapsed >= DRAG_END && elapsed < DRAG_END + 700;
+      if (showTapRipple || showRelRipple) {
+        const rt = showTapRipple ? (elapsed - TAP_DOWN) / 600 : (elapsed - DRAG_END) / 700;
+        ctx.save();
+        ctx.globalAlpha = (1 - rt) * alpha * 0.7;
+        ctx.strokeStyle = '#39ff14';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(fx, fy, 18 + rt * 28, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Draw pointer image (finger points up; rotate 180° so it points down at target)
+      if (pointerImage.complete && pointerImage.naturalWidth) {
+        const pSize = 64;
+        const pHalf = pSize / 2;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        // Rotate 90° CW so finger points down; translate so the fingertip (top of image) sits at castle center
+        ctx.translate(fx, fy);
+        ctx.rotate(Math.PI);
+        ctx.scale(fingerScale, fingerScale);
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 4;
+        // Offset so the actual fingertip pixel lands on the troop number at castle center
+        ctx.drawImage(pointerImage, -pHalf - 14, -pSize * 0.18, pSize, pSize);
+        ctx.restore();
+      }
+    }
+  }
+
+  if (!gameOver && !debugEditMode) {
+    ctx.font = 'bold 16px BentonSans, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
     ctx.strokeStyle = '#000';
@@ -553,7 +630,7 @@ function draw() {
       ctx.roundRect(bx, by, RATIO_BTN_W, RATIO_BTN_H, 6);
       ctx.stroke();
       ctx.fillStyle = active ? '#1a1a2e' : '#c9a227';
-      ctx.font = 'bold 14px Georgia';
+      ctx.font = 'bold 14px BentonSans, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(opt.label, bx + RATIO_BTN_W / 2, by + RATIO_BTN_H / 2);
@@ -581,7 +658,7 @@ function draw() {
       instrLines.forEach((entry, i) => {
         if (!entry.text) return;
         const ly = instrY - (instrLines.length / 2 - i - 0.5) * lineH;
-        ctx.font = i === 0 ? 'bold 14px Georgia' : 'bold 12px Georgia';
+        ctx.font = i === 0 ? 'bold 14px BentonSans, sans-serif' : 'bold 12px BentonSans, sans-serif';
         ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
         ctx.strokeText(entry.text, W() / 2, ly);
         ctx.fillStyle = i === 0 ? `rgba(255, 220, 80, ${alpha})` : `rgba(255, 255, 255, ${alpha})`;
@@ -596,7 +673,7 @@ function draw() {
     ctx.roundRect(ctaX, ctaY, CTA_BTN_W, CTA_BTN_H, 6);
     ctx.fill();
     ctx.fillStyle = '#1a1a2e';
-    ctx.font = 'bold 12px Georgia';
+    ctx.font = 'bold 12px BentonSans, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('Download', ctaX + CTA_BTN_W / 2, ctaY + CTA_BTN_H / 2);
@@ -671,17 +748,17 @@ function draw() {
 
     if (gameOver === 'victory') {
       ctx.fillStyle = '#c9a227';
-      ctx.font = 'bold 26px Georgia';
+      ctx.font = 'bold 26px GoudyTrajan, Georgia';
       ctx.fillText('Conquest Complete!', cx, panelY + 45);
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = '14px Georgia';
+      ctx.font = '14px BentonSans, sans-serif';
       ctx.fillText('You have conquered Westeros.', cx, panelY + 75);
     } else {
       ctx.fillStyle = '#c0392b';
-      ctx.font = 'bold 26px Georgia';
+      ctx.font = 'bold 26px GoudyTrajan, Georgia';
       ctx.fillText('Failed', cx, panelY + 45);
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = '14px Georgia';
+      ctx.font = '14px BentonSans, sans-serif';
       ctx.fillText('Your forces have been vanquished.', cx, panelY + 75);
     }
 
@@ -696,7 +773,7 @@ function draw() {
     ctx.roundRect(btnX, ctaBtnY, btnW, btnH, 8);
     ctx.fill();
     ctx.fillStyle = '#1a1a2e';
-    ctx.font = 'bold 18px Georgia';
+    ctx.font = 'bold 18px BentonSans, sans-serif';
     ctx.fillText('Download Now', cx, ctaBtnY + btnH / 2);
 
     if (gameOver === 'defeat') {
@@ -707,7 +784,7 @@ function draw() {
       ctx.roundRect(btnX, retryY, btnW, btnH, 8);
       ctx.stroke();
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = 'bold 16px Georgia';
+      ctx.font = 'bold 16px BentonSans, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('Try Again', cx, retryY + btnH / 2);
@@ -964,13 +1041,13 @@ function drawLoadingScreen() {
   ctx.fillRect(0, 0, W(), H());
 
   ctx.fillStyle = '#c9a227';
-  ctx.font = 'bold 26px Georgia';
+  ctx.font = 'bold 26px GoudyTrajan, Georgia';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('Conquest of Westeros', W() / 2, H() / 2 - 40);
 
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '14px Georgia';
+  ctx.font = '14px BentonSans, sans-serif';
   ctx.fillText('Loading...', W() / 2, H() / 2 + 10);
 
   const barW = W() * 0.5;
@@ -1037,6 +1114,8 @@ trackAsset(titleFireImage);
 titleFireImage.src = 'assets/title-fire.png';
 trackAsset(titleLogoImage);
 titleLogoImage.src = 'assets/title-logo.png';
+trackAsset(pointerImage);
+pointerImage.src = 'assets/pointer.png';
 loadCastleImages();
 drawLoadingScreen();
 </script>
