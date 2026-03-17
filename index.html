@@ -211,6 +211,15 @@ let dragX = 0, dragY = 0;
 let selectedCastles = [];
 let pointerDownX = 0, pointerDownY = 0;
 let gameOver = null;
+const bgMusic = new Audio('assets/music.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.4;
+let musicStarted = false;
+function tryStartMusic() {
+  if (musicStarted) return;
+  musicStarted = true;
+  bgMusic.play().catch(() => {});
+}
 let aiCooldowns = {};
 let gameStartTime = 0;
 let debugEditMode = false;
@@ -839,6 +848,8 @@ function handlePointerDown(clientX, clientY) {
       const retryY = ctaBtnY + btnH + 14;
       if (x >= btnX && x <= btnX + btnW && y >= retryY && y <= retryY + btnH) {
         initCastles();
+        bgMusic.currentTime = 0;
+        bgMusic.play().catch(() => {});
         return;
       }
     }
@@ -950,6 +961,7 @@ function handlePointerUp(clientX, clientY) {
 
 canvas.addEventListener('pointerdown', (e) => {
   e.preventDefault();
+  tryStartMusic();
   handlePointerDown(e.clientX, e.clientY);
   if (dragStartCastle) e.target.setPointerCapture(e.pointerId);
 });
