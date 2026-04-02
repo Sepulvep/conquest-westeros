@@ -914,20 +914,6 @@ function draw() {
     ctx.textBaseline = 'middle';
     ctx.fillText('Download Now', cx, ctaBtnY + btnH / 2, btnInner);
 
-    if (gameOver === 'defeat') {
-      const retryY = ctaBtnY + btnH + 14;
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(btnX, retryY, btnW, btnH, 8);
-      ctx.stroke();
-      ctx.fillStyle = '#cbd5e1';
-      ctx.font = 'bold 16px BentonSans, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('Try Again', cx, retryY + btnH / 2, btnInner);
-    }
-
     ctx.restore();
   }
 }
@@ -969,7 +955,7 @@ function handlePointerDown(clientX, clientY) {
   if (gameOver) {
     const { x, y } = toCanvasCoords(clientX, clientY);
     const cx = W() / 2, cy = H() / 2;
-    const panelW = W() * 0.72, panelH = 230;
+    const panelW = W() * 0.72, panelH = 165;
     const panelY = H() - panelH - H() * 0.14;
     const btnW = panelW * 0.7, btnH = 44;
     const btnX = cx - btnW / 2;
@@ -977,15 +963,6 @@ function handlePointerDown(clientX, clientY) {
     if (x >= btnX && x <= btnX + btnW && y >= ctaBtnY && y <= ctaBtnY + btnH) {
       handleCTA();
       return;
-    }
-    if (gameOver === 'defeat') {
-      const retryY = ctaBtnY + btnH + 14;
-      if (x >= btnX && x <= btnX + btnW && y >= retryY && y <= retryY + btnH) {
-        initCastles();
-        bgMusic.currentTime = 0;
-        bgMusic.play().catch(() => {});
-        return;
-      }
     }
     return;
   }
