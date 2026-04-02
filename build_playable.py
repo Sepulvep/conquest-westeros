@@ -56,7 +56,7 @@ game_code = game_code.replace(
 # Replace CTA with MRAID
 game_code = game_code.replace(
     "function handleCTA() {\n  const STORE_URL = 'https://example.com/download';\n  if (typeof FbPlayableAd !== 'undefined' && FbPlayableAd.onCTAClick) {\n    FbPlayableAd.onCTAClick();\n  } else {\n    window.open(STORE_URL, '_blank');\n  }\n}",
-    "function handleCTA() {\n  var STORE_URL = 'https://apps.apple.com/app/id0000000000';\n  if (typeof mraid !== 'undefined' && mraid.open) {\n    mraid.open(STORE_URL);\n  } else {\n    window.open(STORE_URL, '_blank');\n  }\n}"
+    "function handleCTA() {\n  var isAndroid = /android/i.test(navigator.userAgent);\n  var storeUrl = isAndroid\n    ? 'https://play.google.com/store/apps/details?id=com.wb.goog.hotd.socialstrategy'\n    : 'https://apps.apple.com/au/app/game-of-thrones-dragonfire/id1642607669';\n  if (typeof mraid !== 'undefined' && mraid.open) {\n    mraid.open(storeUrl);\n  } else {\n    window.open(storeUrl, '_blank');\n  }\n}"
 )
 
 # Replace asset URLs with base64
@@ -88,6 +88,19 @@ game_code = game_code.replace(
 game_code = game_code.replace(
     "const sfxRoar = new Audio('assets/sfx_roar.mp3');",
     f"const sfxRoar = new Audio('{b64['sfx_roar.mp3']}');"
+)
+
+# Inject muteAllAudio implementation after all audio objects are defined
+game_code = game_code.replace(
+    "function tryStartMusic() {",
+    "muteAllAudio = function() {\n"
+    "  try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e) {}\n"
+    "  try { sfxCastleVictory.pause(); sfxCastleVictory.currentTime = 0; } catch(e) {}\n"
+    "  try { sfxCastleDefeat.pause(); sfxCastleDefeat.currentTime = 0; } catch(e) {}\n"
+    "  try { sfxRoar.pause(); sfxRoar.currentTime = 0; } catch(e) {}\n"
+    "  try { sfxVictory.pause(); sfxVictory.currentTime = 0; } catch(e) {}\n"
+    "};\n"
+    "function tryStartMusic() {"
 )
 for old, new in asset_replacements.items():
     game_code = game_code.replace(old, new)
@@ -173,7 +186,6 @@ final = f'''<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="ad.size" content="width=320,height=480">
 <title>Conquest of Westeros</title>
-<script src="mraid.js"><\/script>
 <style>
   @font-face {{
     font-family: 'BentonSans';
@@ -217,6 +229,7 @@ final = f'''<!DOCTYPE html>
 var mraidReady = false;
 var gameInitialized = false;
 var adAudioAllowed = true;
+var muteAllAudio = function() {{}};
 
 function onMraidReady() {{
   mraidReady = true;
@@ -233,14 +246,14 @@ function onViewableChange(viewable) {{
   }}
   if (!viewable) {{
     adAudioAllowed = false;
-    try {{ bgMusic.pause(); }} catch(e) {{}}
+    muteAllAudio();
   }}
 }}
 
 function onStateChange(state) {{
   if (state === 'hidden') {{
     adAudioAllowed = false;
-    try {{ bgMusic.pause(); }} catch(e) {{}}
+    muteAllAudio();
   }}
 }}
 

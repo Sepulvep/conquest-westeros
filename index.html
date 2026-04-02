@@ -787,7 +787,7 @@ function draw() {
       });
     }
 
-    const ctaX = W() - CTA_BTN_W - CTA_BTN_MARGIN;
+    const ctaX = CTA_BTN_MARGIN;
     const ctaY = CTA_BTN_MARGIN;
     ctx.fillStyle = 'rgba(201, 162, 39, 0.95)';
     ctx.beginPath();
@@ -797,7 +797,7 @@ function draw() {
     ctx.font = 'bold 12px BentonSans, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Download', ctaX + CTA_BTN_W / 2, ctaY + CTA_BTN_H / 2);
+    ctx.fillText('Download', ctaX + CTA_BTN_W / 2, ctaY + CTA_BTN_H / 2, CTA_BTN_W - 10);
   }
 
   if (DEBUG && debugOverlay) {
@@ -865,27 +865,34 @@ function draw() {
     ctx.roundRect(panelX, panelY, panelW, panelH, 12);
     ctx.fill();
 
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(panelX, panelY, panelW, panelH, 12);
+    ctx.clip();
+
+    const panelInner = panelW - 32;
     ctx.textAlign = 'center';
 
     if (gameOver === 'victory') {
       ctx.fillStyle = '#c9a227';
       ctx.font = 'bold 26px GoudyTrajan, Georgia';
-      ctx.fillText('Conquest Complete!', cx, panelY + 45);
+      ctx.fillText('Conquest Complete!', cx, panelY + 45, panelInner);
       ctx.fillStyle = '#cbd5e1';
       ctx.font = '14px BentonSans, sans-serif';
-      ctx.fillText('Tap to claim the Iron Throne!', cx, panelY + 75);
+      ctx.fillText('Tap to claim the Iron Throne!', cx, panelY + 75, panelInner);
     } else {
       ctx.fillStyle = '#c0392b';
       ctx.font = 'bold 26px GoudyTrajan, Georgia';
-      ctx.fillText('Failed', cx, panelY + 45);
+      ctx.fillText('Failed', cx, panelY + 45, panelInner);
       ctx.fillStyle = '#cbd5e1';
       ctx.font = '14px BentonSans, sans-serif';
-      ctx.fillText('Your forces have been vanquished.', cx, panelY + 75);
+      ctx.fillText('Your forces have been vanquished.', cx, panelY + 75, panelInner);
     }
 
     const btnW = panelW * 0.7, btnH = 44;
     const btnX = cx - btnW / 2;
     const ctaBtnY = panelY + 100;
+    const btnInner = btnW - 16;
 
     ctx.fillStyle = '#c9a227';
     ctx.beginPath();
@@ -895,7 +902,7 @@ function draw() {
     ctx.font = 'bold 18px BentonSans, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Download Now', cx, ctaBtnY + btnH / 2);
+    ctx.fillText('Download Now', cx, ctaBtnY + btnH / 2, btnInner);
 
     if (gameOver === 'defeat') {
       const retryY = ctaBtnY + btnH + 14;
@@ -908,8 +915,10 @@ function draw() {
       ctx.font = 'bold 16px BentonSans, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Try Again', cx, retryY + btnH / 2);
+      ctx.fillText('Try Again', cx, retryY + btnH / 2, btnInner);
     }
+
+    ctx.restore();
   }
 }
 
@@ -970,7 +979,7 @@ function handlePointerDown(clientX, clientY) {
 
   const { x, y } = toCanvasCoords(clientX, clientY);
 
-  const ctaX = W() - CTA_BTN_W - CTA_BTN_MARGIN;
+  const ctaX = CTA_BTN_MARGIN;
   const ctaY = CTA_BTN_MARGIN;
   if (x >= ctaX && x <= ctaX + CTA_BTN_W && y >= ctaY && y <= ctaY + CTA_BTN_H) {
     handleCTA();
