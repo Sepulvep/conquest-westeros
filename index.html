@@ -112,6 +112,10 @@ let cssW = 390, cssH = 693;
 const W = () => cssW;
 const H = () => cssH;
 
+// Off-screen canvas for region fills — reused every frame
+const regionFillCanvas = document.createElement('canvas');
+const regionFillCtx = regionFillCanvas.getContext('2d');
+
 // Resize: scale canvas buffer by devicePixelRatio so borders are crisp on Retina/mobile
 function resize() {
   const dpr = window.devicePixelRatio || 1;
@@ -509,25 +513,33 @@ function draw() {
     ctx.stroke();
   }
 
-  // Region fills: solid color at moderate opacity, the parchment gap between
-  // adjacent polygons naturally acts as the border (like the reference map).
+  // Draw fills on an off-screen canvas at full opacity so adjacent expanded
+  // polygons can't alpha-blend into each other — no dark overlap band at borders.
+  // The whole layer is then composited at 35% so parchment shows through.
+  regionFillCanvas.width = canvas.width;
+  regionFillCanvas.height = canvas.height;
+  const fctx = regionFillCtx;
+  fctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+  fctx.clearRect(0, 0, W(), H());
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
     const castle = castles.find(c => c.id === castleId);
     const owner = castle ? castle.owner : 'neutral';
     const regionColor = owner === 'player' ? '#4a90e2' : owner === 'neutral' ? '#a89070' : '#d94040';
-    ctx.beginPath();
+    fctx.beginPath();
     path.forEach(([px, py], i) => {
       const x = px * W(), y = py * H();
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      if (i === 0) fctx.moveTo(x, y); else fctx.lineTo(x, y);
     });
-    ctx.closePath();
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = regionColor;
-    ctx.fill();
-    ctx.restore();
+    fctx.closePath();
+    fctx.fillStyle = regionColor;
+    fctx.fill();
   });
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.drawImage(regionFillCanvas, 0, 0, W(), H());
+  ctx.restore();
+
   // Dark outline around each region for crisp definition
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
