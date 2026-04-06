@@ -500,7 +500,7 @@ function draw() {
     ctx.stroke();
   }
 
-  // Pass 1: fills — all regions drawn first so strokes sit on top of every fill
+  // Pass 1: fills
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
     const castle = castles.find(c => c.id === castleId);
@@ -513,12 +513,12 @@ function draw() {
     });
     ctx.closePath();
     ctx.save();
-    ctx.globalAlpha = 0.2;
+    ctx.globalAlpha = 0.18;
     ctx.fillStyle = regionColor;
     ctx.fill();
     ctx.restore();
   });
-  // Pass 2: strokes — drawn on top of all fills, wide enough to seal any seam
+  // Pass 2: dark border strokes on top of all fills — covers any gap cleanly
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
     const castle = castles.find(c => c.id === castleId);
@@ -531,9 +531,15 @@ function draw() {
     });
     ctx.closePath();
     ctx.save();
-    ctx.globalAlpha = 0.85;
+    // Thick dark underglow covers the gap
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    // Thin colored line on top for territory identity
+    ctx.globalAlpha = 0.9;
     ctx.strokeStyle = regionColor;
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
   });
