@@ -106,10 +106,6 @@
 const DEBUG = true;
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-// Off-screen canvas for seamless region fills (reused every frame, never re-created)
-const regionFillCanvas = document.createElement('canvas');
-const regionFillCtx = regionFillCanvas.getContext('2d');
-
 // Responsive sizing - portrait mobile
 function resize() {
   const maxW = Math.min(window.innerWidth, 430);
@@ -503,43 +499,26 @@ function draw() {
     ctx.stroke();
   }
 
-  // Puzzle-piece region rendering:
-  // 1. Each region is drawn at FULL opacity on an off-screen canvas so adjacent
-  //    regions paint cleanly over each other with zero alpha-blending artifacts —
-  //    the boundary between two territories is a crisp 1-pixel edge.
-  // 2. A wide bridge stroke (same color) covers the gap between adjacent polygon
-  //    edges that came from the freehand drawing, bridging them seamlessly.
-  // 3. The whole canvas is composited at ~65% so the map texture shows through.
-  // 4. A dark outline stroke on the main canvas gives the board-game border look.
-  regionFillCanvas.width = canvas.width;
-  regionFillCanvas.height = canvas.height;
-  regionFillCtx.clearRect(0, 0, canvas.width, canvas.height);
-  const bridgeW = Math.max(30, W() * 0.082); // bridges the ~25px inter-region gap
+  // Region fills: solid color at moderate opacity, the parchment gap between
+  // adjacent polygons naturally acts as the border (like the reference map).
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
     const castle = castles.find(c => c.id === castleId);
     const owner = castle ? castle.owner : 'neutral';
-    const regionColor = owner === 'player' ? '#5b9fef' : owner === 'neutral' ? '#9e9070' : '#e05555';
-    regionFillCtx.beginPath();
+    const regionColor = owner === 'player' ? '#4a90e2' : owner === 'neutral' ? '#a89070' : '#d94040';
+    ctx.beginPath();
     path.forEach(([px, py], i) => {
       const x = px * W(), y = py * H();
-      if (i === 0) regionFillCtx.moveTo(x, y); else regionFillCtx.lineTo(x, y);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
-    regionFillCtx.closePath();
-    regionFillCtx.fillStyle = regionColor;
-    regionFillCtx.fill();
-    regionFillCtx.strokeStyle = regionColor;
-    regionFillCtx.lineWidth = bridgeW;
-    regionFillCtx.lineJoin = 'round';
-    regionFillCtx.stroke();
+    ctx.closePath();
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = regionColor;
+    ctx.fill();
+    ctx.restore();
   });
-  // Composite the filled regions onto the map at ~65% so parchment shows through
-  ctx.save();
-  ctx.globalAlpha = 0.62;
-  ctx.drawImage(regionFillCanvas, 0, 0);
-  ctx.restore();
-
-  // Dark outline stroke on the main canvas for the board-game border look
+  // Dark outline around each region for crisp definition
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
     ctx.beginPath();
@@ -549,9 +528,9 @@ function draw() {
     });
     ctx.closePath();
     ctx.save();
-    ctx.globalAlpha = 0.55;
-    ctx.strokeStyle = '#2a1a0a';
-    ctx.lineWidth = Math.max(2, W() * 0.005);
+    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = '#3a2008';
+    ctx.lineWidth = Math.max(1.5, W() * 0.004);
     ctx.lineJoin = 'round';
     ctx.stroke();
     ctx.restore();
