@@ -106,9 +106,6 @@
 const DEBUG = true;
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-// Off-screen canvas for region fill compositing (created once, reused every frame)
-const regionFillCanvas = document.createElement('canvas');
-const regionFillCtx = regionFillCanvas.getContext('2d');
 
 // Responsive sizing - portrait mobile
 function resize() {
@@ -503,41 +500,7 @@ function draw() {
     ctx.stroke();
   }
 
-  // Region fills: draw each region at full opacity on an off-screen canvas, then
-  // composite at low opacity. This means later regions paint cleanly over earlier
-  // ones with no alpha-blending double-tint, giving a crisp 1-px boundary.
-  // A wide stroke (bridgeW) on the off-screen canvas covers any gap between
-  // adjacent region polygons without any coordinate manipulation.
-  regionFillCanvas.width = canvas.width;
-  regionFillCanvas.height = canvas.height;
-  const fillCanvas = regionFillCanvas;
-  const fctx = regionFillCtx;
-  fctx.clearRect(0, 0, fillCanvas.width, fillCanvas.height);
-  const bridgeW = Math.max(28, W() * 0.08); // wide enough to cover inter-region gap (~25px max)
-  Object.entries(REGIONS).forEach(([castleId, path]) => {
-    if (path.length < 3) return;
-    const castle = castles.find(c => c.id === castleId);
-    const owner = castle ? castle.owner : 'neutral';
-    const regionColor = owner === 'player' ? '#4a90e2' : owner === 'neutral' ? '#888888' : '#e24a4a';
-    fctx.beginPath();
-    path.forEach(([px, py], i) => {
-      const x = px * W(), y = py * H();
-      if (i === 0) fctx.moveTo(x, y); else fctx.lineTo(x, y);
-    });
-    fctx.closePath();
-    fctx.fillStyle = regionColor;
-    fctx.fill();
-    fctx.strokeStyle = regionColor;
-    fctx.lineWidth = bridgeW;
-    fctx.lineJoin = 'round';
-    fctx.stroke();
-  });
-  ctx.save();
-  ctx.globalAlpha = 0.14;
-  ctx.drawImage(fillCanvas, 0, 0);
-  ctx.restore();
-
-  // Thin colored border strokes for visual territory identity
+  // Pass 1: fills
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
     const castle = castles.find(c => c.id === castleId);
@@ -550,9 +513,34 @@ function draw() {
     });
     ctx.closePath();
     ctx.save();
-    ctx.globalAlpha = 0.7;
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = regionColor;
+    ctx.fill();
+    ctx.restore();
+  });
+  // Pass 2: dark border strokes on top of all fills — covers any gap cleanly
+  Object.entries(REGIONS).forEach(([castleId, path]) => {
+    if (path.length < 3) return;
+    const castle = castles.find(c => c.id === castleId);
+    const owner = castle ? castle.owner : 'neutral';
+    const regionColor = owner === 'player' ? '#4a90e2' : owner === 'neutral' ? '#888888' : '#e24a4a';
+    ctx.beginPath();
+    path.forEach(([px, py], i) => {
+      const x = px * W(), y = py * H();
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.save();
+    // Proportional stroke widths so borders look the same on any screen size
+    const darkW = Math.max(3, W() * 0.012);
+    const colorW = Math.max(1, W() * 0.004);
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = darkW;
+    ctx.stroke();
+    ctx.globalAlpha = 0.9;
     ctx.strokeStyle = regionColor;
-    ctx.lineWidth = Math.max(1.5, W() * 0.004);
+    ctx.lineWidth = colorW;
     ctx.stroke();
     ctx.restore();
   });
