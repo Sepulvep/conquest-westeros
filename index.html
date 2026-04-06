@@ -141,7 +141,7 @@ const CASTLE_DEFS = [
 ];
 
 const TROOP_GROWTH = 0.03;
-let sendRatio = 0.25;
+let sendRatio = 0.5;
 const CASTLE_RADIUS = 28;
 const AI_SEND_RATIO = 0.5;
 const AI_COOLDOWN_MIN = 80;
@@ -264,15 +264,6 @@ let debugOverlay = false;
 let debugSpeedAccum = 0;
 let dragOffsetX = 0, dragOffsetY = 0;
 let impactParticles = [];
-const RATIO_OPTIONS = [
-  { ratio: 0.25, label: '25%' },
-  { ratio: 0.5,  label: '50%' },
-  { ratio: 1,    label: '100%' },
-];
-const RATIO_BTN_W = 50, RATIO_BTN_H = 32, RATIO_BTN_GAP = 6;
-const RATIO_BTN_X = 10;
-function RATIO_BTN_Y()   { return H() - RATIO_BTN_H - 14; }
-function RATIO_LABEL_Y() { return H() - RATIO_BTN_H - 22; }
 const INSTRUCTION_FADE_MS = 8000;
 const CTA_BTN_W = 90, CTA_BTN_H = 30, CTA_BTN_MARGIN = 8;
 let lastTapTime = 0;
@@ -704,32 +695,6 @@ function draw() {
     ctx.font = 'bold 16px BentonSans, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.lineJoin = 'round';
-    ctx.strokeText('Army Size:', RATIO_BTN_X, RATIO_LABEL_Y());
-    ctx.fillStyle = '#c9a227';
-    ctx.fillText('Army Size:', RATIO_BTN_X, RATIO_LABEL_Y());
-
-    RATIO_OPTIONS.forEach((opt, i) => {
-      const bx = RATIO_BTN_X + i * (RATIO_BTN_W + RATIO_BTN_GAP);
-      const by = RATIO_BTN_Y();
-      const active = sendRatio === opt.ratio;
-      ctx.fillStyle = active ? 'rgba(201, 162, 39, 0.95)' : 'rgba(15, 23, 42, 0.9)';
-      ctx.beginPath();
-      ctx.roundRect(bx, by, RATIO_BTN_W, RATIO_BTN_H, 6);
-      ctx.fill();
-      ctx.strokeStyle = active ? '#c9a227' : 'rgba(201, 162, 39, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(bx, by, RATIO_BTN_W, RATIO_BTN_H, 6);
-      ctx.stroke();
-      ctx.fillStyle = active ? '#1a1a2e' : '#c9a227';
-      ctx.font = 'bold 14px BentonSans, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(opt.label, bx + RATIO_BTN_W / 2, by + RATIO_BTN_H / 2);
-    });
 
     const elapsed = Date.now() - gameStartTime;
 
@@ -963,13 +928,6 @@ function handlePointerDown(clientX, clientY) {
     return;
   }
 
-  for (let i = 0; i < RATIO_OPTIONS.length; i++) {
-    const bx = RATIO_BTN_X + i * (RATIO_BTN_W + RATIO_BTN_GAP);
-    if (x >= bx && x <= bx + RATIO_BTN_W && y >= RATIO_BTN_Y() && y <= RATIO_BTN_Y() + RATIO_BTN_H) {
-      sendRatio = RATIO_OPTIONS[i].ratio;
-      return;
-    }
-  }
 
   pointerDownX = x;
   pointerDownY = y;
