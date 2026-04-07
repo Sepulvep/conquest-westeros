@@ -601,7 +601,7 @@ function draw() {
     if (path.length < 3) return;
     const castle = castles.find(c => c.id === castleId);
     const owner = castle ? castle.owner : 'neutral';
-    const regionColor = owner === 'player' ? '#4a90e2' : owner === 'neutral' ? '#a89070' : '#d94040';
+    const regionColor = owner === 'player' ? '#4a90e2' : owner === 'neutral' ? '#808080' : '#d94040';
     fctx.beginPath();
     path.forEach(([px, py], i) => {
       const x = px * W(), y = py * H();
@@ -1016,8 +1016,8 @@ function draw() {
     // Player (blue) — left
     ctx.fillStyle = '#2563eb';
     ctx.fillRect(0, 0, pxW, barH);
-    // Neutral (tan) — middle
-    ctx.fillStyle = '#8c7a5a';
+    // Neutral (gray) — middle
+    ctx.fillStyle = '#808080';
     ctx.fillRect(pxW, 0, nxW, barH);
     // Enemy (red) — right
     ctx.fillStyle = '#c0392b';
