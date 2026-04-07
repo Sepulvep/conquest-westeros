@@ -1274,7 +1274,7 @@ canvas.addEventListener('pointerdown', (e) => {
 // Snap radius in CSS pixels — if the stylus/finger is within this distance of
 // any vertex on an existing (other) region, we snap to that vertex exactly so
 // the two regions share the same coordinate and have a perfect shared border.
-const DRAW_SNAP_PX = 20;
+const DRAW_SNAP_PX = 10;
 
 function snapToExistingBorder(rawX, rawY) {
   const px = rawX / W(), py = rawY / H();
