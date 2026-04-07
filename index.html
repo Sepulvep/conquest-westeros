@@ -585,6 +585,26 @@ function draw() {
   ctx.drawImage(regionFillCanvas, 0, 0, W(), H());
   ctx.restore();
 
+  // Step 3 — bold region outlines. Adjacent regions share exact vertices so
+  // each shared edge is drawn once per neighbour at the same position, giving
+  // a clean single bold border with no doubling artefacts.
+  ctx.save();
+  ctx.strokeStyle = '#1e1008';
+  ctx.lineWidth = Math.max(2, W() * 0.005);
+  ctx.lineJoin = 'round';
+  ctx.globalAlpha = 0.85;
+  Object.values(REGIONS).forEach(path => {
+    if (path.length < 3) return;
+    ctx.beginPath();
+    path.forEach(([px, py], i) => {
+      const x = px * W(), y = py * H();
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  });
+  ctx.restore();
+
 
 
   // Draw live freehand path while region drawing is active
