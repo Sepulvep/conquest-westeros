@@ -1007,13 +1007,13 @@ function draw() {
 
   // ── Territory control bar ──────────────────────────────────────────────────
   if (!gameOver) {
-    const totalRegions = Object.keys(REGIONS).length || 1;
     const playerCount  = castles.filter(c => c.owner === 'player').length;
     const enemyCount   = castles.filter(c => c.owner === 'enemy').length;
-    const neutralCount = totalRegions - playerCount - enemyCount;
-    const playerPct  = playerCount  / totalRegions;
-    const enemyPct   = enemyCount   / totalRegions;
-    const neutralPct = neutralCount / totalRegions;
+    const neutralCount = castles.filter(c => c.owner === 'neutral').length;
+    const total = (playerCount + enemyCount + neutralCount) || 1;
+    const playerPct  = playerCount  / total;
+    const enemyPct   = enemyCount   / total;
+    const neutralPct = neutralCount / total;
 
     const barH = Math.round(W() * 0.068);
     const barW = W();
