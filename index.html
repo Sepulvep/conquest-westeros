@@ -390,7 +390,6 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 const INSTRUCTION_FADE_MS = 8000;
-const CTA_BTN_W = 90, CTA_BTN_H = 30, CTA_BTN_MARGIN = 8;
 let lastTapTime = 0;
 let lastTapCastle = null;
 let selectAllMode = false;
@@ -979,17 +978,6 @@ function draw() {
       });
     }
 
-    const ctaX = CTA_BTN_MARGIN;
-    const ctaY = CTA_BTN_MARGIN;
-    ctx.fillStyle = 'rgba(201, 162, 39, 0.95)';
-    ctx.beginPath();
-    ctx.roundRect(ctaX, ctaY, CTA_BTN_W, CTA_BTN_H, 6);
-    ctx.fill();
-    ctx.fillStyle = '#1a1a2e';
-    ctx.font = 'bold 12px BentonSans, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('Download', ctaX + CTA_BTN_W / 2, ctaY + CTA_BTN_H / 2, CTA_BTN_W - 10);
   }
 
   if (DEBUG && debugOverlay) {
@@ -1233,12 +1221,6 @@ function handlePointerDown(clientX, clientY) {
 
   const { x, y } = toCanvasCoords(clientX, clientY);
 
-  const ctaX = CTA_BTN_MARGIN;
-  const ctaY = CTA_BTN_MARGIN;
-  if (x >= ctaX && x <= ctaX + CTA_BTN_W && y >= ctaY && y <= ctaY + CTA_BTN_H) {
-    handleCTA();
-    return;
-  }
 
 
   pointerDownX = x;
