@@ -1008,8 +1008,8 @@ function draw() {
   // ── Territory control bar ──────────────────────────────────────────────────
   if (!gameOver) {
     const playerCount  = castles.filter(c => c.owner === 'player').length;
-    const enemyCount   = castles.filter(c => c.owner === 'enemy').length;
     const neutralCount = castles.filter(c => c.owner === 'neutral').length;
+    const enemyCount   = castles.length - playerCount - neutralCount;
     const total = (playerCount + enemyCount + neutralCount) || 1;
     const playerPct  = playerCount  / total;
     const enemyPct   = enemyCount   / total;
