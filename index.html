@@ -513,14 +513,23 @@ function draw() {
     ctx.stroke();
   }
 
-  // Draw fills on an off-screen canvas at full opacity so adjacent expanded
-  // polygons can't alpha-blend into each other — no dark overlap band at borders.
-  // The whole layer is then composited at 35% so parchment shows through.
+  // Combined fill + gap-border pass on the off-screen canvas:
+  //
+  // 1. Draw each region fill at full opacity (so adjacent fills don't alpha-blend).
+  // 2. Draw thick dark strokes with `destination-over` — this composite mode draws
+  //    the stroke BEHIND whatever is already on the canvas.  Inside each territory
+  //    the canvas is already opaque (from the fill) so the stroke is invisible there.
+  //    In the transparent GAP between adjacent polygons the canvas is empty, so the
+  //    dark stroke shows through — turning the gap into an intentional border line.
+  // 3. Composite the whole layer at 50% so the parchment map texture shows through.
+  const dpr = window.devicePixelRatio || 1;
   regionFillCanvas.width = canvas.width;
   regionFillCanvas.height = canvas.height;
   const fctx = regionFillCtx;
-  fctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+  fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   fctx.clearRect(0, 0, W(), H());
+
+  // Step 1 — territory fills (full opacity, no blending between regions)
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
     const castle = castles.find(c => c.id === castleId);
@@ -535,29 +544,30 @@ function draw() {
     fctx.fillStyle = regionColor;
     fctx.fill();
   });
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.drawImage(regionFillCanvas, 0, 0, W(), H());
-  ctx.restore();
 
-  // Dark outline around each region for crisp definition
+  // Step 2 — dark gap-fill strokes drawn BEHIND the fills via destination-over
+  const gapW = Math.max(30, W() * 0.08);
+  fctx.globalCompositeOperation = 'destination-over';
   Object.entries(REGIONS).forEach(([castleId, path]) => {
     if (path.length < 3) return;
-    ctx.beginPath();
+    fctx.beginPath();
     path.forEach(([px, py], i) => {
       const x = px * W(), y = py * H();
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      if (i === 0) fctx.moveTo(x, y); else fctx.lineTo(x, y);
     });
-    ctx.closePath();
-    ctx.save();
-    ctx.globalAlpha = 0.75;
-    ctx.strokeStyle = '#3a2008';
-    // 1 physical pixel wide — divided by DPR so it stays hair-thin at 2x/3x Retina
-    ctx.lineWidth = 1 / (window.devicePixelRatio || 1);
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    ctx.restore();
+    fctx.closePath();
+    fctx.strokeStyle = '#1e1008';
+    fctx.lineWidth = gapW;
+    fctx.lineJoin = 'round';
+    fctx.stroke();
   });
+  fctx.globalCompositeOperation = 'source-over';
+
+  // Step 3 — composite the combined layer onto the map
+  ctx.save();
+  ctx.globalAlpha = 0.50;
+  ctx.drawImage(regionFillCanvas, 0, 0, W(), H());
+  ctx.restore();
 
   // Draw live freehand path while region drawing is active
   if (debugRegionMode && currentRegionPath.length > 1) {
