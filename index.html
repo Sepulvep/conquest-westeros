@@ -550,9 +550,10 @@ function draw() {
     });
     ctx.closePath();
     ctx.save();
-    ctx.globalAlpha = 0.7;
+    ctx.globalAlpha = 0.75;
     ctx.strokeStyle = '#3a2008';
-    ctx.lineWidth = Math.max(1.5, W() * 0.004);
+    // 1 physical pixel wide — divided by DPR so it stays hair-thin at 2x/3x Retina
+    ctx.lineWidth = 1 / (window.devicePixelRatio || 1);
     ctx.lineJoin = 'round';
     ctx.stroke();
     ctx.restore();
