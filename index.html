@@ -994,7 +994,7 @@ function draw() {
     ctx.textAlign = 'center';
   }
 
-  // ── Territory control bar ──────────────────────────────────────────────────
+  // ── Territory control bar (vertical, right side) ──────────────────────────
   if (!gameOver) {
     const playerCount  = castles.filter(c => c.owner === 'player').length;
     const neutralCount = castles.filter(c => c.owner === 'neutral').length;
@@ -1004,75 +1004,91 @@ function draw() {
     const enemyPct   = enemyCount   / total;
     const neutralPct = neutralCount / total;
 
-    const barH = Math.round(W() * 0.068);
-    const barW = W();
-    const pxW  = playerPct  * barW;
-    const nxW  = neutralPct * barW;
-    const exW  = enemyPct   * barW;
+    const barW   = Math.round(W() * 0.055);   // thin vertical bar
+    const barH   = Math.round(H() * 0.42);    // 42% of canvas height
+    const pad    = Math.round(W() * 0.025);   // padding from right/top edges
+    const radius = 6;
+    const contPad = 4;                         // inner padding inside container
+
+    // Container position (bar sits inside with contPad gap)
+    const contW = barW + contPad * 2;
+    const contH = barH + contPad * 2;
+    const contX = W() - contW - pad;
+    const contY = pad;
+    const bx    = contX + contPad;
+    const by    = contY + contPad;
 
     ctx.save();
-    ctx.globalAlpha = 0.88;
 
-    // Player (blue) — left
-    ctx.fillStyle = '#2563eb';
-    ctx.fillRect(0, 0, pxW, barH);
-    // Neutral (gray) — middle
-    ctx.fillStyle = '#808080';
-    ctx.fillRect(pxW, 0, nxW, barH);
-    // Enemy (red) — right
-    ctx.fillStyle = '#c0392b';
-    ctx.fillRect(pxW + nxW, 0, exW, barH);
+    // --- Container background & border ---
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = 'rgba(10, 8, 5, 0.70)';
+    ctx.beginPath();
+    ctx.roundRect(contX, contY, contW, contH, radius + 2);
+    ctx.fill();
 
-    // Divider lines between sections
-    ctx.globalAlpha = 0.55;
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1 / (window.devicePixelRatio || 1);
-    if (pxW > 0 && nxW + exW > 0) {
-      ctx.beginPath(); ctx.moveTo(pxW, 0); ctx.lineTo(pxW, barH); ctx.stroke();
-    }
-    if (exW > 0 && pxW + nxW > 0) {
-      ctx.beginPath(); ctx.moveTo(pxW + nxW, 0); ctx.lineTo(pxW + nxW, barH); ctx.stroke();
-    }
-
-    // Labels
     ctx.globalAlpha = 1;
-    const fs = Math.round(barH * 0.48);
+    ctx.strokeStyle = '#c9a227';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(contX, contY, contW, contH, radius + 2);
+    ctx.stroke();
+
+    // --- Clip bar segments to rounded rect ---
+    ctx.globalAlpha = 0.92;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(bx, by, barW, barH, radius);
+    ctx.clip();
+
+    // Player (blue) — top
+    const pyH = playerPct * barH;
+    // Enemy (red) — bottom
+    const eyH = enemyPct  * barH;
+    // Neutral (gray) — middle
+    const nyH = neutralPct * barH;
+
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(bx, by, barW, pyH);
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(bx, by + pyH, barW, nyH);
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(bx, by + pyH + nyH, barW, eyH);
+
+    ctx.restore(); // end clip
+
+    // --- Divider lines ---
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    if (pyH > 0 && nyH + eyH > 0) {
+      ctx.beginPath(); ctx.moveTo(bx, by + pyH); ctx.lineTo(bx + barW, by + pyH); ctx.stroke();
+    }
+    if (eyH > 0 && pyH + nyH > 0) {
+      ctx.beginPath(); ctx.moveTo(bx, by + pyH + nyH); ctx.lineTo(bx + barW, by + pyH + nyH); ctx.stroke();
+    }
+
+    // --- Labels (% inside each segment) ---
+    ctx.globalAlpha = 1;
+    const fs = Math.max(9, Math.round(barW * 0.55));
     ctx.font = `700 ${fs}px sans-serif`;
-    ctx.textBaseline = 'middle';
-    const midY = barH / 2;
-    const iconH = Math.round(barH * 0.72);
-    const iconW = iconH;
-    const iconY = (barH - iconH) / 2;
-
-    if (playerPct > 0.12) {
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'left';
-      if (throneImage.complete && throneImage.naturalWidth) {
-        ctx.drawImage(throneImage, 4, iconY, iconW, iconH);
-        ctx.fillText(`${Math.round(playerPct * 100)}%`, 6 + iconW + 3, midY);
-      } else {
-        ctx.fillText(`${Math.round(playerPct * 100)}%`, 6, midY);
-      }
-    }
-    if (enemyPct > 0.12) {
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'right';
-      const pctStr = `${Math.round(enemyPct * 100)}%`;
-      const pctW = ctx.measureText(pctStr).width;
-      if (throneImage.complete && throneImage.naturalWidth) {
-        ctx.fillText(pctStr, barW - 6 - iconW - 3, midY);
-        ctx.drawImage(throneImage, barW - 4 - iconW, iconY, iconW, iconH);
-      } else {
-        ctx.fillText(pctStr, barW - 6, midY);
-      }
-    }
-    if (neutralPct > 0.14) {
-      ctx.fillStyle = '#ede8dc';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${Math.round(neutralPct * 100)}%`, pxW + nxW / 2, midY);
-    }
-
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const midX = bx + barW / 2;
+
+    if (playerPct > 0.10) {
+      ctx.fillStyle = '#fff';
+      ctx.fillText(`${Math.round(playerPct * 100)}%`, midX, by + pyH / 2);
+    }
+    if (neutralPct > 0.10) {
+      ctx.fillStyle = '#ede8dc';
+      ctx.fillText(`${Math.round(neutralPct * 100)}%`, midX, by + pyH + nyH / 2);
+    }
+    if (enemyPct > 0.10) {
+      ctx.fillStyle = '#fff';
+      ctx.fillText(`${Math.round(enemyPct * 100)}%`, midX, by + pyH + nyH + eyH / 2);
+    }
+
     ctx.restore();
   }
 
