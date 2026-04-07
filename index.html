@@ -569,6 +569,28 @@ function draw() {
   ctx.drawImage(regionFillCanvas, 0, 0, W(), H());
   ctx.restore();
 
+  // Step 4 — thin colored ownership border around each region
+  const physPx = 1 / (window.devicePixelRatio || 1);
+  Object.entries(REGIONS).forEach(([castleId, path]) => {
+    if (path.length < 3) return;
+    const castle = castles.find(c => c.id === castleId);
+    const owner = castle ? castle.owner : 'neutral';
+    const borderColor = owner === 'player' ? '#4a90e2' : owner === 'neutral' ? '#b8a882' : '#d94040';
+    ctx.beginPath();
+    path.forEach(([px, py], i) => {
+      const x = px * W(), y = py * H();
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = physPx * 1.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.restore();
+  });
+
   // Draw live freehand path while region drawing is active
   if (debugRegionMode && currentRegionPath.length > 1) {
     ctx.beginPath();
@@ -902,6 +924,73 @@ function draw() {
       ctx.fillText(`${c.name || c.id} | ${Math.floor(c.troops)} | ${c.owner}`, 6, 28 + i * 14);
     });
     ctx.textAlign = 'center';
+  }
+
+  // ── Territory control bar ──────────────────────────────────────────────────
+  if (!gameOver) {
+    const totalRegions = Object.keys(REGIONS).length || 1;
+    const playerCount  = castles.filter(c => c.owner === 'player').length;
+    const enemyCount   = castles.filter(c => c.owner === 'enemy').length;
+    const neutralCount = totalRegions - playerCount - enemyCount;
+    const playerPct  = playerCount  / totalRegions;
+    const enemyPct   = enemyCount   / totalRegions;
+    const neutralPct = neutralCount / totalRegions;
+
+    const barH = Math.round(W() * 0.068);
+    const barW = W();
+    const pxW  = playerPct  * barW;
+    const nxW  = neutralPct * barW;
+    const exW  = enemyPct   * barW;
+
+    ctx.save();
+    ctx.globalAlpha = 0.88;
+
+    // Player (blue) — left
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(0, 0, pxW, barH);
+    // Neutral (tan) — middle
+    ctx.fillStyle = '#8c7a5a';
+    ctx.fillRect(pxW, 0, nxW, barH);
+    // Enemy (red) — right
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(pxW + nxW, 0, exW, barH);
+
+    // Divider lines between sections
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1 / (window.devicePixelRatio || 1);
+    if (pxW > 0 && nxW + exW > 0) {
+      ctx.beginPath(); ctx.moveTo(pxW, 0); ctx.lineTo(pxW, barH); ctx.stroke();
+    }
+    if (exW > 0 && pxW + nxW > 0) {
+      ctx.beginPath(); ctx.moveTo(pxW + nxW, 0); ctx.lineTo(pxW + nxW, barH); ctx.stroke();
+    }
+
+    // Labels
+    ctx.globalAlpha = 1;
+    const fs = Math.round(barH * 0.48);
+    ctx.font = `700 ${fs}px sans-serif`;
+    ctx.textBaseline = 'middle';
+    const midY = barH / 2;
+
+    if (playerPct > 0.12) {
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'left';
+      ctx.fillText(`▲ ${Math.round(playerPct * 100)}%`, 6, midY);
+    }
+    if (enemyPct > 0.12) {
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${Math.round(enemyPct * 100)}% ▲`, barW - 6, midY);
+    }
+    if (neutralPct > 0.14) {
+      ctx.fillStyle = '#ede8dc';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${Math.round(neutralPct * 100)}%`, pxW + nxW / 2, midY);
+    }
+
+    ctx.textAlign = 'center';
+    ctx.restore();
   }
 
   if (gameOver) {
