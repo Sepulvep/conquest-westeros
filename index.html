@@ -602,6 +602,21 @@ function draw() {
     ctx.setLineDash([]);
     ctx.restore();
   }
+  // Snap highlight — yellow ring when drawing cursor is locked to an existing vertex
+  if (debugRegionMode && drawSnapHighlight) {
+    const sx = drawSnapHighlight.px * W(), sy = drawSnapHighlight.py * H();
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#facc15';
+    ctx.fill();
+    ctx.restore();
+  }
 
   if (dragStartCastle && !debugEditMode) {
     const sources = selectedCastles.length ? selectedCastles : [dragStartCastle];
@@ -1256,22 +1271,47 @@ canvas.addEventListener('pointerdown', (e) => {
   handlePointerDown(e.clientX, e.clientY);
   if (dragStartCastle) e.target.setPointerCapture(e.pointerId);
 });
+// Snap radius in CSS pixels — if the stylus/finger is within this distance of
+// any vertex on an existing (other) region, we snap to that vertex exactly so
+// the two regions share the same coordinate and have a perfect shared border.
+const DRAW_SNAP_PX = 20;
+
+function snapToExistingBorder(rawX, rawY) {
+  const px = rawX / W(), py = rawY / H();
+  let bestDist = DRAW_SNAP_PX + 1, bestPx = px, bestPy = py;
+  Object.entries(REGIONS).forEach(([id, path]) => {
+    if (id === debugRegionCastleId) return; // don't snap to self
+    path.forEach(([vx, vy]) => {
+      const d = Math.hypot((vx - px) * W(), (vy - py) * H());
+      if (d < bestDist) { bestDist = d; bestPx = vx; bestPy = vy; }
+    });
+  });
+  return { px: bestPx, py: bestPy, snapped: bestDist <= DRAW_SNAP_PX };
+}
+
+// Last snapped position for the drawing cursor highlight
+let drawSnapHighlight = null;
+
 canvas.addEventListener('pointermove', (e) => {
   if (isDrawingRegion) {
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
+    const { px, py, snapped } = snapToExistingBorder(x, y);
+    drawSnapHighlight = snapped ? { px, py } : null;
     const last = currentRegionPath[currentRegionPath.length - 1];
-    const dx = x / W() - last[0], dy = y / H() - last[1];
-    if (Math.hypot(dx * W(), dy * H()) > 8) {
-      currentRegionPath.push([x / W(), y / H()]);
+    const dx = px - last[0], dy = py - last[1];
+    if (Math.hypot(dx * W(), dy * H()) > 6) {
+      currentRegionPath.push([px, py]);
     }
     return;
   }
+  drawSnapHighlight = null;
   handlePointerMove(e.clientX, e.clientY);
 });
 canvas.addEventListener('pointerup', (e) => {
   e.preventDefault();
   if (isDrawingRegion) {
     isDrawingRegion = false;
+    drawSnapHighlight = null;
     if (currentRegionPath.length >= 3) {
       REGIONS[debugRegionCastleId] = currentRegionPath.slice();
       try { localStorage.setItem(REGIONS_KEY, JSON.stringify(REGIONS)); } catch(err) {}
@@ -1283,6 +1323,7 @@ canvas.addEventListener('pointerup', (e) => {
 });
 canvas.addEventListener('pointercancel', () => {
   isDrawingRegion = false;
+  drawSnapHighlight = null;
   currentRegionPath = [];
   dragStartCastle = null;
   dragSnapTarget = null;
