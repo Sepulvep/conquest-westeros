@@ -565,31 +565,10 @@ function draw() {
 
   // Step 3 — composite the combined layer onto the map
   ctx.save();
-  ctx.globalAlpha = 0.50;
+  ctx.globalAlpha = 0.55;
   ctx.drawImage(regionFillCanvas, 0, 0, W(), H());
   ctx.restore();
 
-  // Step 4 — thin colored ownership border around each region
-  const physPx = 1 / (window.devicePixelRatio || 1);
-  Object.entries(REGIONS).forEach(([castleId, path]) => {
-    if (path.length < 3) return;
-    const castle = castles.find(c => c.id === castleId);
-    const owner = castle ? castle.owner : 'neutral';
-    const borderColor = owner === 'player' ? '#4a90e2' : owner === 'neutral' ? '#b8a882' : '#d94040';
-    ctx.beginPath();
-    path.forEach(([px, py], i) => {
-      const x = px * W(), y = py * H();
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.closePath();
-    ctx.save();
-    ctx.globalAlpha = 0.85;
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = physPx * 1.5;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    ctx.restore();
-  });
 
   // Draw live freehand path while region drawing is active
   if (debugRegionMode && currentRegionPath.length > 1) {
