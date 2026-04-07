@@ -246,6 +246,7 @@ let marchLineImage = new Image();
 let titleFireImage = new Image();
 let titleLogoImage = new Image();
 let pointerImage = new Image();
+let throneImage = new Image();
 
 let castles = [];
 let fleets = [];
@@ -1051,16 +1052,31 @@ function draw() {
     ctx.font = `700 ${fs}px sans-serif`;
     ctx.textBaseline = 'middle';
     const midY = barH / 2;
+    const iconH = Math.round(barH * 0.72);
+    const iconW = iconH;
+    const iconY = (barH - iconH) / 2;
 
     if (playerPct > 0.12) {
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'left';
-      ctx.fillText(`▲ ${Math.round(playerPct * 100)}%`, 6, midY);
+      if (throneImage.complete && throneImage.naturalWidth) {
+        ctx.drawImage(throneImage, 4, iconY, iconW, iconH);
+        ctx.fillText(`${Math.round(playerPct * 100)}%`, 6 + iconW + 3, midY);
+      } else {
+        ctx.fillText(`${Math.round(playerPct * 100)}%`, 6, midY);
+      }
     }
     if (enemyPct > 0.12) {
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'right';
-      ctx.fillText(`${Math.round(enemyPct * 100)}% ▲`, barW - 6, midY);
+      const pctStr = `${Math.round(enemyPct * 100)}%`;
+      const pctW = ctx.measureText(pctStr).width;
+      if (throneImage.complete && throneImage.naturalWidth) {
+        ctx.fillText(pctStr, barW - 6 - iconW - 3, midY);
+        ctx.drawImage(throneImage, barW - 4 - iconW, iconY, iconW, iconH);
+      } else {
+        ctx.fillText(pctStr, barW - 6, midY);
+      }
     }
     if (neutralPct > 0.14) {
       ctx.fillStyle = '#ede8dc';
@@ -1619,6 +1635,8 @@ trackAsset(titleLogoImage);
 titleLogoImage.src = 'assets/title-logo.png';
 trackAsset(pointerImage);
 pointerImage.src = 'assets/pointer.png';
+trackAsset(throneImage);
+throneImage.src = 'assets/throne.png';
 loadCastleImages();
 drawLoadingScreen();
 </script>
