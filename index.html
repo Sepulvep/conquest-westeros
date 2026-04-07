@@ -585,28 +585,6 @@ function draw() {
   ctx.drawImage(regionFillCanvas, 0, 0, W(), H());
   ctx.restore();
 
-  // Step 3 — shared border lines at the midpoint between adjacent region vertices.
-  // Exactly one line per shared boundary; no doubling, no colored strokes.
-  if (!SHARED_BORDERS) computeSharedBorders();
-  ctx.save();
-  ctx.globalAlpha = 0.75;
-  ctx.strokeStyle = '#1e1008';
-  ctx.lineWidth = 1.5 / (window.devicePixelRatio || 1);
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  SHARED_BORDERS.forEach(pts => {
-    ctx.beginPath();
-    let prevAi = -9999;
-    pts.forEach(({ ai, mpx, mpy }) => {
-      const x = mpx * W(), y = mpy * H();
-      // Gap in ai index > 4 means we've crossed the non-shared arc of A's perimeter
-      if (ai - prevAi > 4) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-      prevAi = ai;
-    });
-    ctx.stroke();
-  });
-  ctx.restore();
 
 
   // Draw live freehand path while region drawing is active
