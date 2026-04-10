@@ -125,11 +125,22 @@ const H = () => cssH;
 const regionFillCanvas = document.createElement('canvas');
 const regionFillCtx = regionFillCanvas.getContext('2d');
 
-// Resize: fill the viewport and scale by devicePixelRatio for crisp rendering
+// Resize: portrait uses original 9/16 layout; landscape fills the viewport
 function resize() {
   const dpr = window.devicePixelRatio || 1;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  let w, h;
+  if (window.innerWidth > window.innerHeight) {
+    // Landscape — fill the viewport
+    w = window.innerWidth;
+    h = window.innerHeight;
+  } else {
+    // Portrait — original constrained layout
+    const maxW = Math.min(window.innerWidth, 430);
+    const maxH = Math.min(window.innerHeight, 932);
+    const aspect = 9 / 16;
+    w = maxW; h = w / aspect;
+    if (h > maxH) { h = maxH; w = h * aspect; }
+  }
   cssW = w; cssH = h;
   canvas.style.width  = w + 'px';
   canvas.style.height = h + 'px';
