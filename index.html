@@ -125,22 +125,16 @@ const H = () => cssH;
 const regionFillCanvas = document.createElement('canvas');
 const regionFillCtx = regionFillCanvas.getContext('2d');
 
-// Resize: scale canvas buffer by devicePixelRatio so borders are crisp on Retina/mobile
+// Resize: fill the viewport and scale by devicePixelRatio for crisp rendering
 function resize() {
   const dpr = window.devicePixelRatio || 1;
-  const maxW = Math.min(window.innerWidth, 430);
-  const maxH = Math.min(window.innerHeight, 932);
-  const aspect = 9 / 16;
-  let w = maxW, h = w / aspect;
-  if (h > maxH) { h = maxH; w = h * aspect; }
+  const w = window.innerWidth;
+  const h = window.innerHeight;
   cssW = w; cssH = h;
-  // CSS display size
   canvas.style.width  = w + 'px';
   canvas.style.height = h + 'px';
-  // Physical pixel buffer scaled for the display
   canvas.width  = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
-  // Scale context so all drawing uses CSS pixel coordinates
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 resize();
@@ -1110,12 +1104,14 @@ function draw() {
     ctx.fillRect(0, 0, W(), H());
 
     const cx = W() / 2, cy = H() / 2;
-    const panelW = W() * 0.72, panelH = 260;
-    const panelX = cx - panelW / 2, panelY = H() - panelH - H() * 0.14;
+    const isLandscape = W() > H();
+    const panelW = isLandscape ? Math.min(W() * 0.50, 380) : W() * 0.72;
+    const panelH = Math.min(Math.round(H() * 0.37), 260);
+    const panelX = cx - panelW / 2, panelY = H() - panelH - H() * 0.10;
     const borderPulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.003);
 
     // Title area: fire splash behind logo, centered above panel
-    const titleW = W() * 0.88;
+    const titleW = isLandscape ? W() * 0.55 : W() * 0.88;
     const titleCenterY = panelY * 0.48;
     if (titleFireImage.complete && titleFireImage.naturalWidth) {
       const fireAspect = titleFireImage.naturalWidth / titleFireImage.naturalHeight;
@@ -1151,24 +1147,27 @@ function draw() {
     const panelInner = panelW - 32;
     ctx.textAlign = 'center';
 
+    const titleFS = Math.max(16, Math.round(panelH * 0.10));
+    const subFS   = Math.max(11, Math.round(panelH * 0.054));
+
     if (gameOver === 'victory') {
       ctx.fillStyle = '#c9a227';
-      ctx.font = 'bold 26px GoudyTrajan, Georgia';
-      ctx.fillText('Conquest Complete!', cx, panelY + 45, panelInner);
+      ctx.font = `bold ${titleFS}px GoudyTrajan, Georgia`;
+      ctx.fillText('Conquest Complete!', cx, panelY + panelH * 0.17, panelInner);
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = '14px BentonSans, sans-serif';
-      ctx.fillText('Tap to claim the Iron Throne!', cx, panelY + 75, panelInner);
+      ctx.font = `${subFS}px BentonSans, sans-serif`;
+      ctx.fillText('Tap to claim the Iron Throne!', cx, panelY + panelH * 0.29, panelInner);
     } else {
       ctx.fillStyle = '#c0392b';
-      ctx.font = 'bold 26px GoudyTrajan, Georgia';
-      ctx.fillText('Failed', cx, panelY + 45, panelInner);
+      ctx.font = `bold ${titleFS}px GoudyTrajan, Georgia`;
+      ctx.fillText('Failed', cx, panelY + panelH * 0.17, panelInner);
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = '14px BentonSans, sans-serif';
-      ctx.fillText('Your forces have been vanquished.', cx, panelY + 75, panelInner);
+      ctx.font = `${subFS}px BentonSans, sans-serif`;
+      ctx.fillText('Your forces have been vanquished.', cx, panelY + panelH * 0.29, panelInner);
     }
 
     // Store badges — official badge images
-    const badgeH = 52, badgeGap = 10;
+    const badgeH = Math.round(panelH * 0.20), badgeGap = 10;
     const badgeW = (panelW - 28 - badgeGap) / 2;
     const badgeY = panelY + panelH - badgeH - 14;
     const appleX = panelX + 14;
@@ -1218,10 +1217,12 @@ function handleCTA() {
 function handlePointerDown(clientX, clientY) {
   if (gameOver) {
     const { x, y } = toCanvasCoords(clientX, clientY);
-    const panelW = W() * 0.72, panelH = 260;
+    const isLandscape = W() > H();
+    const panelW = isLandscape ? Math.min(W() * 0.50, 380) : W() * 0.72;
+    const panelH = Math.min(Math.round(H() * 0.37), 260);
     const panelX = W() / 2 - panelW / 2;
-    const panelY = H() - panelH - H() * 0.14;
-    const badgeH = 52, badgeGap = 10;
+    const panelY = H() - panelH - H() * 0.10;
+    const badgeH = Math.round(panelH * 0.20), badgeGap = 10;
     const badgeW = (panelW - 28 - badgeGap) / 2;
     const badgeY = panelY + panelH - badgeH - 14;
     const appleX = panelX + 14;
